@@ -1,5 +1,7 @@
 # 🍅 Pomodoro Discord Bot
 
+<img width="3168" height="1344" alt="Gemini_Generated_Image_fecciefecciefecc" src="https://github.com/user-attachments/assets/16f86ab8-a1cf-428f-8e9e-ee038e0db3d8" />
+
 ## 1. 프로젝트 개요
 디스코드 음성 채널 기반의 **뽀모도로(Pomodoro) 타이머 봇**입니다.
 이 봇은 디스코드 채널에 상주하며 사용자가 설정한 집중 시간과 휴식 시간에 맞춰 알림을 제공하고, 집중력을 높여줄 수 있는 배경 음악을 재생합니다.
