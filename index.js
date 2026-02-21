@@ -29,39 +29,54 @@ if (!fs.existsSync(NOTIFY_DIR)) fs.mkdirSync(NOTIFY_DIR);
 // -----------------------------------------------------------------------------------------
 const commands = [
     new SlashCommandBuilder()
-        .setName('뽀모도로 시작')
-        .setDescription('뽀모도로 타이머를 시작합니다.')
-        .addIntegerOption(option =>
-            option.setName('집중시간')
-                .setDescription('집중할 시간을 분 단위로 입력하세요 (기본 25분)')
-                .setRequired(false))
-        .addIntegerOption(option =>
-            option.setName('휴식시간')
-                .setDescription('휴식할 시간을 분 단위로 입력하세요 (기본 5분)')
-                .setRequired(false)),
-    new SlashCommandBuilder()
-        .setName('뽀모도로 배경음')
-        .setDescription('집중 시간에 재생할 배경음을 설정합니다.')
-        .addStringOption(option =>
-            option.setName('파일명')
-                .setDescription('재생할 오디오 파일명 (예: bgm.mp3), 입력하지 않으면 켬/끔 토글')
-                .setRequired(true)),
-    new SlashCommandBuilder()
-        .setName('뽀모도로 알림음')
-        .setDescription('휴식/집중 종료 시 재생할 알림음을 설정합니다.')
-        .addStringOption(option =>
-            option.setName('파일명')
-                .setDescription('재생할 오디오 파일명 (기본: notify.mp3)')
-                .setRequired(true)),
-    new SlashCommandBuilder()
-        .setName('뽀모도로 오디오 목록')
-        .setDescription('사용 가능한 오디오 목록을 확인합니다.'),
-    new SlashCommandBuilder()
-        .setName('뽀모도로 중지')
-        .setDescription('현재 진행 중인 뽀모도로 타이머를 중지합니다.'),
-    new SlashCommandBuilder()
-        .setName('뽀모도로 도움말')
-        .setDescription('뽀모도로 봇 사용법 안내를 출력합니다.')
+        .setName('뽀모도로')
+        .setDescription('뽀모도로 타이머 명령어 모음')
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('시작')
+                .setDescription('뽀모도로 타이머를 시작합니다.')
+                .addIntegerOption(option =>
+                    option.setName('집중시간')
+                        .setDescription('집중할 시간을 분 단위로 입력하세요 (기본 25분)')
+                        .setRequired(false))
+                .addIntegerOption(option =>
+                    option.setName('휴식시간')
+                        .setDescription('휴식할 시간을 분 단위로 입력하세요 (기본 5분)')
+                        .setRequired(false))
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('배경음')
+                .setDescription('집중 시간에 재생할 배경음을 설정합니다.')
+                .addStringOption(option =>
+                    option.setName('파일명')
+                        .setDescription('재생할 오디오 파일명 (예: bgm.mp3)')
+                        .setRequired(true))
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('알림음')
+                .setDescription('휴식/집중 종료 시 재생할 알림음을 설정합니다.')
+                .addStringOption(option =>
+                    option.setName('파일명')
+                        .setDescription('재생할 오디오 파일명 (기본: notify.mp3)')
+                        .setRequired(true))
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('목록')
+                .setDescription('사용 가능한 오디오 목록을 확인합니다.')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('중지')
+                .setDescription('현재 진행 중인 뽀모도로 타이머를 중지합니다.')
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('도움말')
+                .setDescription('뽀모도로 봇 사용법 안내를 출력합니다.')
+        )
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -87,10 +102,12 @@ client.on('ready', async () => {
 client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
 
-    const { commandName } = interaction;
+    if (interaction.commandName !== '뽀모도로') return;
 
-    // '/뽀모도로도움말'
-    if (commandName === '뽀모도로 도움말') {
+    const subcommand = interaction.options.getSubcommand();
+
+    // '/뽀모도로 도움말'
+    if (subcommand === '도움말') {
         return interaction.reply({
             content: `🍅 **뽀모도로 봇 사용법 안내** 🍅
 
@@ -103,7 +120,7 @@ client.on('interactionCreate', async interaction => {
 🔹 \`/뽀모도로 알림음 [파일명]\`
 타이머가 끝날 때 재생될 알림음을 설정합니다. (\`notify-sound\` 폴더 내 파일 사용, 기본값: \`notify.mp3\`)
 
-🔹 \`/뽀모도로 오디오 목록\`
+🔹 \`/뽀모도로 목록\`
 사용 가능한 오디오 파일 목록을 확인합니다.
 
 🔹 \`/뽀모도로 중지\`
@@ -112,8 +129,8 @@ client.on('interactionCreate', async interaction => {
         });
     }
 
-    // '/뽀모도로목록'
-    if (commandName === '뽀모도로 오디오 목록') {
+    // '/뽀모도로 목록'
+    if (subcommand === '목록') {
         let replyMsg = '🎵 **사용 가능한 오디오 목록:**\n\n';
 
         replyMsg += '**[배경음 (background-sound)]**\n';
@@ -135,8 +152,8 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply({ content: replyMsg, ephemeral: true });
     }
 
-    // '/뽀모도로중지'
-    if (commandName === '뽀모도로 중지') {
+    // '/뽀모도로 중지'
+    if (subcommand === '중지') {
         const timerData = activeTimers.get(interaction.user.id);
         if (!timerData) {
             return interaction.reply({ content: '❌ 현재 진행 중인 뽀모도로 타이머가 없습니다.', ephemeral: true });
@@ -150,8 +167,8 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply('🛑 뽀모도로 타이머를 중지했습니다.');
     }
 
-    // '/뽀모도로배경음'
-    if (commandName === '뽀모도로 배경음') {
+    // '/뽀모도로 배경음'
+    if (subcommand === '배경음') {
         let bgmName = interaction.options.getString('파일명');
         if (bgmName === '없음' || bgmName === '무음') bgmName = null;
         else if (!bgmName.endsWith('.mp3')) bgmName += '.mp3';
@@ -163,8 +180,8 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply(`🎵 배경음이 **${bgmName ? bgmName : '없음(무음)'}**(으)로 설정되었습니다!`);
     }
 
-    // '/뽀모도로알림음'
-    if (commandName === '뽀모도로 알림음') {
+    // '/뽀모도로 알림음'
+    if (subcommand === '알림음') {
         let notifyName = interaction.options.getString('파일명');
         if (!notifyName.endsWith('.mp3')) notifyName += '.mp3';
 
@@ -175,8 +192,8 @@ client.on('interactionCreate', async interaction => {
         return interaction.reply(`🔔 알림음이 **${notifyName}**(으)로 설정되었습니다!`);
     }
 
-    // '/뽀모도로시작'
-    if (commandName === '뽀모도로 시작') {
+    // '/뽀모도로 시작'
+    if (subcommand === '시작') {
         if (activeTimers.has(interaction.user.id)) {
             return interaction.reply({ content: '⏳ 현재 뽀모도로 타이머가 이미 진행 중입니다! (중지하려면 `/뽀모도로 중지`를 입력하세요)', ephemeral: true });
         }
