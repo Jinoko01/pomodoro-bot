@@ -59,7 +59,7 @@ const commands = [
                 .setDescription('휴식/집중 종료 시 재생할 알림음을 설정합니다.')
                 .addStringOption(option =>
                     option.setName('파일명')
-                        .setDescription('재생할 오디오 파일명 (기본: notify.mp3)')
+                        .setDescription('재생할 오디오 파일명 (기본: 기본알림음.mp3)')
                         .setRequired(true))
         )
         .addSubcommand(subcommand =>
@@ -118,7 +118,7 @@ client.on('interactionCreate', async interaction => {
 집중 시간에 반복 재생될 배경음을 설정합니다. (\`background-sound\` 폴더 내 파일 사용, 무음은 \`없음\` 기입)
     
 🔹 \`/뽀모도로 알림음 [파일명]\`
-타이머가 끝날 때 재생될 알림음을 설정합니다. (\`notify-sound\` 폴더 내 파일 사용, 기본값: \`notify.mp3\`)
+타이머가 끝날 때 재생될 알림음을 설정합니다. (\`notify-sound\` 폴더 내 파일 사용, 기본값: \`기본알림음.mp3\`)
 
 🔹 \`/뽀모도로 목록\`
 사용 가능한 오디오 파일 목록을 확인합니다.
@@ -173,7 +173,7 @@ client.on('interactionCreate', async interaction => {
         if (bgmName === '없음' || bgmName === '무음') bgmName = null;
         else if (!bgmName.endsWith('.mp3')) bgmName += '.mp3';
 
-        const userSettings = userAudioSettings.get(interaction.user.id) || { bgmName: null, notifyName: 'notify.mp3' };
+        const userSettings = userAudioSettings.get(interaction.user.id) || { bgmName: null, notifyName: '기본알림음.mp3' };
         userSettings.bgmName = bgmName;
         userAudioSettings.set(interaction.user.id, userSettings);
 
@@ -185,7 +185,7 @@ client.on('interactionCreate', async interaction => {
         let notifyName = interaction.options.getString('파일명');
         if (!notifyName.endsWith('.mp3')) notifyName += '.mp3';
 
-        const userSettings = userAudioSettings.get(interaction.user.id) || { bgmName: null, notifyName: 'notify.mp3' };
+        const userSettings = userAudioSettings.get(interaction.user.id) || { bgmName: null, notifyName: '기본알림음.mp3' };
         userSettings.notifyName = notifyName;
         userAudioSettings.set(interaction.user.id, userSettings);
 
@@ -208,9 +208,9 @@ client.on('interactionCreate', async interaction => {
         const breakMins = interaction.options.getInteger('휴식시간') || 5;
 
         // 사용자의 오디오 설정 불러오기
-        const userSettings = userAudioSettings.get(interaction.user.id) || { bgmName: null, notifyName: 'notify.mp3' };
+        const userSettings = userAudioSettings.get(interaction.user.id) || { bgmName: null, notifyName: '기본알림음.mp3' };
         let bgmName = userSettings.bgmName || null;
-        let notifyName = userSettings.notifyName || 'notify.mp3';
+        let notifyName = userSettings.notifyName || '기본알림음.mp3';
 
         const workTimeMs = workMins * 60 * 1000;
         const breakTimeMs = breakMins * 60 * 1000;
