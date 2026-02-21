@@ -17,10 +17,11 @@ const activeTimers = new Map();
 // 유저별 오디오 설정 저장 Map
 const userAudioSettings = new Map();
 
-const AUDIO_DIR = path.join(__dirname, 'audio');
-if (!fs.existsSync(AUDIO_DIR)) {
-    fs.mkdirSync(AUDIO_DIR);
-}
+const BGM_DIR = path.join(__dirname, 'background-sound');
+const NOTIFY_DIR = path.join(__dirname, 'notify-sound');
+
+if (!fs.existsSync(BGM_DIR)) fs.mkdirSync(BGM_DIR);
+if (!fs.existsSync(NOTIFY_DIR)) fs.mkdirSync(NOTIFY_DIR);
 
 // -----------------------------------------------------------------------------------------
 // 슬래시 커맨드 정의 (Slash Commands)
@@ -28,7 +29,7 @@ if (!fs.existsSync(AUDIO_DIR)) {
 // -----------------------------------------------------------------------------------------
 const commands = [
     new SlashCommandBuilder()
-        .setName('뽀모도로시작')
+        .setName('뽀모도로 시작')
         .setDescription('뽀모도로 타이머를 시작합니다.')
         .addIntegerOption(option =>
             option.setName('집중시간')
@@ -39,27 +40,27 @@ const commands = [
                 .setDescription('휴식할 시간을 분 단위로 입력하세요 (기본 5분)')
                 .setRequired(false)),
     new SlashCommandBuilder()
-        .setName('뽀모도로배경음')
+        .setName('뽀모도로 배경음')
         .setDescription('집중 시간에 재생할 배경음을 설정합니다.')
         .addStringOption(option =>
             option.setName('파일명')
                 .setDescription('재생할 오디오 파일명 (예: bgm.mp3), 입력하지 않으면 켬/끔 토글')
                 .setRequired(true)),
     new SlashCommandBuilder()
-        .setName('뽀모도로알림음')
+        .setName('뽀모도로 알림음')
         .setDescription('휴식/집중 종료 시 재생할 알림음을 설정합니다.')
         .addStringOption(option =>
             option.setName('파일명')
                 .setDescription('재생할 오디오 파일명 (기본: notify.mp3)')
                 .setRequired(true)),
     new SlashCommandBuilder()
-        .setName('뽀모도로목록')
+        .setName('뽀모도로 오디오 목록')
         .setDescription('사용 가능한 오디오 목록을 확인합니다.'),
     new SlashCommandBuilder()
-        .setName('뽀모도로중지')
+        .setName('뽀모도로 중지')
         .setDescription('현재 진행 중인 뽀모도로 타이머를 중지합니다.'),
     new SlashCommandBuilder()
-        .setName('뽀모도로도움말')
+        .setName('뽀모도로 도움말')
         .setDescription('뽀모도로 봇 사용법 안내를 출력합니다.')
 ].map(command => command.toJSON());
 
@@ -89,46 +90,53 @@ client.on('interactionCreate', async interaction => {
     const { commandName } = interaction;
 
     // '/뽀모도로도움말'
-    if (commandName === '뽀모도로도움말') {
+    if (commandName === '뽀모도로 도움말') {
         return interaction.reply({
             content: `🍅 **뽀모도로 봇 사용법 안내** 🍅
 
-🔹 \`/뽀모도로시작 [집중시간] [휴식시간]\`
+🔹 \`/뽀모도로 시작 [집중시간] [휴식시간]\`
 타이머를 시작합니다. (옵션을 주지 않으면 기본값인 **집중 25분 / 휴식 5분** 적용)
 
-🔹 \`/뽀모도로배경음 [파일명]\`
-집중 시간에 반복 재생될 배경음을 설정합니다. (무음 원할 경우 \`없음\` 기입)
+🔹 \`/뽀모도로 배경음 [파일명]\`
+집중 시간에 반복 재생될 배경음을 설정합니다. (\`background-sound\` 폴더 내 파일 사용, 무음은 \`없음\` 기입)
     
-🔹 \`/뽀모도로알림음 [파일명]\`
-타이머가 끝날 때 재생될 알림음을 설정합니다. (기본: \`notify.mp3\`)
+🔹 \`/뽀모도로 알림음 [파일명]\`
+타이머가 끝날 때 재생될 알림음을 설정합니다. (\`notify-sound\` 폴더 내 파일 사용, 기본값: \`notify.mp3\`)
 
-🔹 \`/뽀모도로목록\`
+🔹 \`/뽀모도로 오디오 목록\`
 사용 가능한 오디오 파일 목록을 확인합니다.
 
-🔹 \`/뽀모도로중지\`
+🔹 \`/뽀모도로 중지\`
 진행 중인 타이머를 즉시 중지하고 봇을 내보냅니다.`,
             ephemeral: true
         });
     }
 
     // '/뽀모도로목록'
-    if (commandName === '뽀모도로목록') {
-        fs.readdir(AUDIO_DIR, (err, files) => {
-            if (err) {
-                console.error(err);
-                return interaction.reply({ content: '❌ 오디오 목록을 불러오는데 실패했습니다.', ephemeral: true });
-            }
-            const mp3Files = files.filter(f => f.endsWith('.mp3'));
-            if (mp3Files.length === 0) {
-                return interaction.reply({ content: '📂 현재 `audio` 폴더에 mp3 파일이 없습니다.', ephemeral: true });
-            }
-            interaction.reply({ content: `🎵 **사용 가능한 오디오 목록:**\n${mp3Files.map(f => `- \`${f}\``).join('\n')}`, ephemeral: true });
-        });
-        return;
+    if (commandName === '뽀모도로 오디오 목록') {
+        let replyMsg = '🎵 **사용 가능한 오디오 목록:**\n\n';
+
+        replyMsg += '**[배경음 (background-sound)]**\n';
+        if (fs.existsSync(BGM_DIR)) {
+            const bgmFiles = fs.readdirSync(BGM_DIR).filter(f => f.endsWith('.mp3'));
+            replyMsg += bgmFiles.length > 0 ? bgmFiles.map(f => `- \`${f}\``).join('\n') + '\n' : '📂 파일이 없습니다.\n';
+        } else {
+            replyMsg += '📂 폴더가 없습니다.\n';
+        }
+
+        replyMsg += '\n**[알림음 (notify-sound)]**\n';
+        if (fs.existsSync(NOTIFY_DIR)) {
+            const notifyFiles = fs.readdirSync(NOTIFY_DIR).filter(f => f.endsWith('.mp3'));
+            replyMsg += notifyFiles.length > 0 ? notifyFiles.map(f => `- \`${f}\``).join('\n') : '📂 파일이 없습니다.';
+        } else {
+            replyMsg += '📂 폴더가 없습니다.';
+        }
+
+        return interaction.reply({ content: replyMsg, ephemeral: true });
     }
 
     // '/뽀모도로중지'
-    if (commandName === '뽀모도로중지') {
+    if (commandName === '뽀모도로 중지') {
         const timerData = activeTimers.get(interaction.user.id);
         if (!timerData) {
             return interaction.reply({ content: '❌ 현재 진행 중인 뽀모도로 타이머가 없습니다.', ephemeral: true });
@@ -143,7 +151,7 @@ client.on('interactionCreate', async interaction => {
     }
 
     // '/뽀모도로배경음'
-    if (commandName === '뽀모도로배경음') {
+    if (commandName === '뽀모도로 배경음') {
         let bgmName = interaction.options.getString('파일명');
         if (bgmName === '없음' || bgmName === '무음') bgmName = null;
         else if (!bgmName.endsWith('.mp3')) bgmName += '.mp3';
@@ -156,7 +164,7 @@ client.on('interactionCreate', async interaction => {
     }
 
     // '/뽀모도로알림음'
-    if (commandName === '뽀모도로알림음') {
+    if (commandName === '뽀모도로 알림음') {
         let notifyName = interaction.options.getString('파일명');
         if (!notifyName.endsWith('.mp3')) notifyName += '.mp3';
 
@@ -168,9 +176,9 @@ client.on('interactionCreate', async interaction => {
     }
 
     // '/뽀모도로시작'
-    if (commandName === '뽀모도로시작') {
+    if (commandName === '뽀모도로 시작') {
         if (activeTimers.has(interaction.user.id)) {
-            return interaction.reply({ content: '⏳ 현재 뽀모도로 타이머가 이미 진행 중입니다! (중지하려면 `/뽀모도로중지`를 입력하세요)', ephemeral: true });
+            return interaction.reply({ content: '⏳ 현재 뽀모도로 타이머가 이미 진행 중입니다! (중지하려면 `/뽀모도로 중지`를 입력하세요)', ephemeral: true });
         }
 
         const voiceChannel = interaction.member?.voice?.channel;
@@ -217,7 +225,7 @@ client.on('interactionCreate', async interaction => {
         let isFocusTime = true;
 
         if (bgmName) {
-            const bgmPath = path.join(AUDIO_DIR, bgmName);
+            const bgmPath = path.join(BGM_DIR, bgmName);
             if (fs.existsSync(bgmPath)) {
                 player.play(createAudioResource(bgmPath));
 
@@ -233,7 +241,7 @@ client.on('interactionCreate', async interaction => {
             }
         }
 
-        const notifyPath = path.join(AUDIO_DIR, notifyName);
+        const notifyPath = path.join(NOTIFY_DIR, notifyName);
 
         const workTimeout = setTimeout(() => {
             isFocusTime = false;
@@ -249,7 +257,7 @@ client.on('interactionCreate', async interaction => {
             }
 
             const breakTimeout = setTimeout(() => {
-                interaction.channel.send(`⏰ <@${interaction.user.id}>님, 휴식 시간이 끝났습니다!\n다시 집중할 시간입니다. (다시 시작하려면 \`/뽀모도로시작\`을 입력하세요)`);
+                interaction.channel.send(`⏰ <@${interaction.user.id}>님, 휴식 시간이 끝났습니다!\n다시 집중할 시간입니다. (다시 시작하려면 \`/뽀모도로 시작\`을 입력하세요)`);
 
                 if (fs.existsSync(notifyPath)) {
                     player.play(createAudioResource(notifyPath));
