@@ -15,8 +15,11 @@ const client = new Client({
 
 // 시간 설정 (밀리초 단위)
 // 테스트할 때는 25 * 60 * 1000 대신 5000(5초) 등으로 줄여서 확인해 보세요!
-const WORK_TIME = 25 * 1000; // 25분
-const BREAK_TIME = 5 * 1000; // 5분
+const WORK_TIME = 25 * 60 * 1000; // 25분
+const BREAK_TIME = 5 * 60 * 1000; // 5분
+
+// 현재 타이머가 진행 중인 유저를 추적하기 위한 Set
+const activeTimers = new Set();
 
 client.on('ready', () => {
     console.log(`✅ ${client.user.tag} 봇이 성공적으로 로그인했습니다!`);
@@ -28,11 +31,18 @@ client.on('messageCreate', (message) => {
 
     // '!뽀모도로 시작' 명령어 인식
     if (message.content === '!뽀모도로 시작') {
+        if (activeTimers.has(message.author.id)) {
+            return message.reply('⏳ 현재 뽀모도로 타이머가 이미 진행 중입니다! 타이머가 끝난 뒤에 다시 시작해주세요.');
+        }
+
         const voiceChannel = message.member?.voice.channel;
 
         if (!voiceChannel) {
             return message.reply('❌ 봇이 알림음을 재생하려면 먼저 음성 채널에 접속해 있어야 합니다.');
         }
+
+        // 유저를 타이머 진행 중 상태로 등록
+        activeTimers.add(message.author.id);
 
         message.reply('🍅 **뽀모도로 타이머 시작!** 지금부터 25분 동안 딴짓 금지, 집중해 보세요!');
 
@@ -64,10 +74,11 @@ client.on('messageCreate', (message) => {
                 player.play(breakEndResource);
 
                 // 재생이 끝나면 연결을 유지할지 종료할지 선택할 수 있습니다.
-                // 여기서는 타이머가 완전히 끝났으므로 10초 뒤에 음성 채널에서 퇴장합니다.
+                // 여기서는 타이머가 완전히 끝났으므로 60초 뒤에 음성 채널에서 퇴장합니다.
                 setTimeout(() => {
                     connection.destroy();
-                }, 10000);
+                    activeTimers.delete(message.author.id); // 타이머 종료 처리
+                }, 60000);
             }, BREAK_TIME);
 
         }, WORK_TIME);
