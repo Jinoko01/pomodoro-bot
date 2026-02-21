@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 
 // 봇 클라이언트 생성 (메시지 읽기 권한 추가)
@@ -11,8 +12,8 @@ const client = new Client({
 
 // 시간 설정 (밀리초 단위)
 // 테스트할 때는 25 * 60 * 1000 대신 5000(5초) 등으로 줄여서 확인해 보세요!
-const WORK_TIME = 25 * 60 * 1000; // 25분
-const BREAK_TIME = 5 * 60 * 1000; // 5분
+const WORK_TIME = 25 * 1000; // 25분
+const BREAK_TIME = 5 * 1000; // 5분
 
 client.on('ready', () => {
     console.log(`✅ ${client.user.tag} 봇이 성공적으로 로그인했습니다!`);
@@ -39,5 +40,4 @@ client.on('messageCreate', (message) => {
     }
 });
 
-// 발급받은 봇 토큰을 아래에 입력하세요
-client.login(process.env.BOT_TOKEN);
+client.login(process.env.DISCORD_TOKEN);
